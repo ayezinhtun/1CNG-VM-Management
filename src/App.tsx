@@ -35,7 +35,7 @@ function App() {
       case 'nodes':
         return <NodeManagement />;
       case 'vms':
-        return <VMManagement onNavigate={setActiveTab} />;
+        return <VMManagement />;
       case 'customers':
         return <CustomerManagement />;
       case 'gp-accounts':
