@@ -164,7 +164,8 @@ export const CreateCustomerWizard: React.FC<CreateCustomerWizardProps> = ({ onSu
         { department_name: departmentName },
         validContacts,
         validContracts,
-        validGPAccounts
+        validGPAccounts,
+        [] // Empty cluster data for now
       );
 
       if (result.success) {
