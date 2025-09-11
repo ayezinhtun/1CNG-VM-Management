@@ -11,7 +11,11 @@ import { useDataStore } from '../../hooks/useDataStore';
 import { showToast } from '../ui/Toast';
 import { VM } from '../../types';
 
-export const VMManagement: React.FC = () => {
+interface VMManagementProps {
+  onNavigate?: (tab: string) => void;
+}
+
+export const VMManagement: React.FC<VMManagementProps> = ({ onNavigate }) => {
   const { vms, customers, clusters, nodes, loading, updateVM, deleteVM } = useDataStore();
   const [filteredVMs, setFilteredVMs] = useState<VM[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -318,7 +322,7 @@ export const VMManagement: React.FC = () => {
             <Download className="w-4 h-4 mr-2" />
             Export ({filteredVMs.length})
           </Button>
-          <Button>
+          <Button onClick={() => onNavigate?.('create-vm')}>
             <Plus className="w-4 h-4 mr-2" />
             Create VM
           </Button>

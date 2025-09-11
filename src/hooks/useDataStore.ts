@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { VM, Customer, Contract, GPAccount, Contact, AuditLog, ActivityLog, Cluster } from '../types';
+import { VM, Customer, Contract, GPAccount, Contact, AuditLog, ActivityLog, Cluster, Node } from '../types';
 import { showToast } from '../components/ui/Toast';
 
 // Enhanced data stores with more realistic data
@@ -973,11 +973,34 @@ export const useDataStore = () => {
     customerData: { department_name: string },
     contactsData: Omit<Contact, 'id' | 'customer_id' | 'created_at'>[],
     contractsData: Omit<Contract, 'id' | 'customer_id' | 'created_at' | 'updated_at'>[],
-    gpAccountsData: Omit<GPAccount, 'id' | 'customer_id' | 'created_at' | 'updated_at'>[]
+    gpAccountsData: Omit<GPAccount, 'id' | 'customer_id' | 'created_at' | 'updated_at'>[],
+    clusterData: Omit<Cluster, 'id'| 'created_at' | 'updated_at'>[]
   ) => {
     try {
       setLoading(true);
       
+      // Check if node has sufficient resources
+      const node = nodeStore.find(n => n.id === vmData.node_id);
+      if (!node) {
+        throw new Error('Selected node not found');
+      }
+
+      // Parse resource requirements
+      const requestedRAM = parseInt(vmData.ram.split(' ')[0]) || 0;
+      const requestedStorage = parseInt(vmData.storage.split(' ')[0]) || 0;
+      const requestedCPU = vmData.cpu_ghz || 0;
+
+      // Validate resource availability
+      if (requestedCPU > node.available_cpu_ghz) {
+        throw new Error(`Insufficient CPU. Available: ${node.available_cpu_ghz} GHz`);
+      }
+      if (requestedRAM > node.available_ram_gb) {
+        throw new Error(`Insufficient RAM. Available: ${node.available_ram_gb} GB`);
+      }
+      if (requestedStorage > node.available_storage_gb) {
+        throw new Error(`Insufficient Storage. Available: ${node.available_storage_gb} GB`);
+      }
+
       const customerId = generateId();
       const now = new Date().toISOString();
       
@@ -1006,6 +1029,14 @@ export const useDataStore = () => {
         updated_at: now
       }));
 
+      const newClusters: Cluster[] = clusterData.map(cluster => ({
+        ...cluster,
+        id: generateId(),
+        // customer_id: customerId,
+        created_at: now,
+        updated_at: now
+
+      }))
       
       // Create GP accounts
       const newGPAccounts: GPAccount[] = gpAccountsData.map(account => ({
@@ -1023,6 +1054,7 @@ export const useDataStore = () => {
       contactStore.push(...newContacts);
       contractStore.push(...newContracts);
       gpAccountStore.push(...newGPAccounts);
+      clusterStore.push(...newClusters);
       
       setCustomers([...customerStore]);
       setContacts([...contactStore]);

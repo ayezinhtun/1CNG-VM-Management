@@ -24,14 +24,14 @@ import {
 } from 'recharts';
 
 export const Analytics: React.FC = () => {
-  const { vms, customers, contracts, gpAccounts, getDashboardMetrics } = useDataStore();
+  const { vms, customers, contracts, gpAccounts, clusters, nodes, getDashboardMetrics } = useDataStore();
   const [dateRange, setDateRange] = useState('30');
   const [reportType, setReportType] = useState('overview');
   const [metrics, setMetrics] = useState(getDashboardMetrics());
 
   useEffect(() => {
     setMetrics(getDashboardMetrics());
-  }, [vms, customers, contracts, gpAccounts]);
+  }, [vms, customers, contracts, gpAccounts, clusters, nodes]);
 
   // Calculate analytics data
   const vmStatusData = [
@@ -47,14 +47,55 @@ export const Analytics: React.FC = () => {
     revenue: contracts.filter(c => c.customer_id === customer.id && c.status === 'Active').reduce((sum, c) => sum + c.value, 0)
   }));
 
-  const monthlyTrendData = [
-    { month: 'Jan', vms: 45, customers: 12, revenue: 15000 },
-    { month: 'Feb', vms: 52, customers: 15, revenue: 18500 },
-    { month: 'Mar', vms: 61, customers: 18, revenue: 22000 },
-    { month: 'Apr', vms: 58, customers: 16, revenue: 20500 },
-    { month: 'May', vms: 67, customers: 22, revenue: 25000 },
-    { month: 'Jun', vms: 73, customers: 25, revenue: 28000 }
-  ];
+  // const monthlyTrendData = [
+  //   { month: 'Jan', vms: 45, customers: 12, revenue: 15000 },
+  //   { month: 'Feb', vms: 52, customers: 15, revenue: 18500 },
+  //   { month: 'Mar', vms: 61, customers: 18, revenue: 22000 },
+  //   { month: 'Apr', vms: 58, customers: 16, revenue: 20500 },
+  //   { month: 'May', vms: 67, customers: 22, revenue: 25000 },
+  //   { month: 'Jun', vms: 73, customers: 25, revenue: 28000 }
+  // ];
+
+  const calculateMonthlyTrends = () => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth(); // 0-based (September = 8)
+
+    // Get the last 6 months including current month
+    const recentMonths = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthIndex = (currentMonth - i + 12) % 12;
+      recentMonths.push({ name: months[monthIndex], index: monthIndex });
+    }
+
+    return recentMonths.map(({ name, index }) => {
+      const monthEnd = new Date(currentYear, index + 1, 0);
+      
+      // Count nodes created up to this month
+      const nodesUpToMonth = nodes.filter(node =>
+        node.created_at && new Date(node.created_at) <= monthEnd
+      ).length;
+
+      // Count clusters created up to this month
+      const clustersUpToMonth = clusters.filter(cluster => 
+        new Date(cluster.created_at) <= monthEnd
+      ).length;
+
+      // Calculate revenue up to this month
+      const revenueUpToMonth = contracts.filter(contract =>
+        contract.status === 'Active' && new Date(contract.created_at) <= monthEnd
+      ).reduce((sum, contract) => sum + contract.value, 0);
+
+      return {
+        month: name, 
+        nodes: nodesUpToMonth,
+        clusters: clustersUpToMonth,
+        revenue: revenueUpToMonth
+      };
+    });
+  }
+
+  const monthlyTrendData = calculateMonthlyTrends();
 
   const contractStatusData = [
     { name: 'Active', value: contracts.filter(c => c.status === 'Active').length, color: '#10b981' },
@@ -63,11 +104,55 @@ export const Analytics: React.FC = () => {
     { name: 'Cancelled', value: contracts.filter(c => c.status === 'Cancelled').length, color: '#6b7280' }
   ];
 
-  const resourceUtilizationData = [
-    { resource: 'CPU (vCores)', allocated: metrics.totalCPU, available: 128 - metrics.totalCPU },
-    { resource: 'RAM (GB)', allocated: metrics.totalRAM, available: 512 - metrics.totalRAM },
-    { resource: 'Storage (GB)', allocated: metrics.totalStorage, available: 10000 - metrics.totalStorage }
-  ];
+  // const resourceUtilizationData = [
+  //   { resource: 'CPU (vCores)', allocated: metrics.totalCPU, available: 128 - metrics.totalCPU },
+  //   { resource: 'RAM (GB)', allocated: metrics.totalRAM, available: 512 - metrics.totalRAM },
+  //   { resource: 'Storage (GB)', allocated: metrics.totalStorage, available: 10000 - metrics.totalStorage }
+  // ];
+
+  const calculateResourceUtilization = () =>{
+    const totalResources = nodes.reduce((total, node) =>({
+      totalCPU: total.totalCPU + node.total_cpu_ghz ,
+      allocatedCPU: total.allocatedCPU + node.allocated_cpu_ghz,
+      totalRAM: total.totalRAM + node.total_ram_gb,
+      allocatedRAM: total.allocatedRAM + node.allocated_ram_gb,
+      totalStorage: total.totalStorage + node.storage_capacity_gb,
+      allocatedStorage: total.allocatedStorage + node.allocated_storage_gb,
+    }),{
+      totalCPU: 0,
+      allocatedCPU: 0,
+      totalRAM: 0,
+      allocatedRAM: 0,
+      totalStorage: 0,
+      allocatedStorage: 0,
+    });
+
+    return [
+      {
+        resource: 'CPU (GHz)',
+        allocated: totalResources.allocatedCPU,
+        available: totalResources.totalCPU - totalResources.allocatedCPU,
+        total: totalResources.totalCPU,
+        utilization: totalResources.totalCPU > 0 ? ((totalResources.allocatedCPU / totalResources.totalCPU) * 100).toFixed(1) : '0'
+      },
+      {
+        resource: 'RAM (GB)',
+        allocated: totalResources.allocatedRAM,
+        available: totalResources.totalRAM - totalResources.allocatedRAM,
+        total: totalResources.totalRAM,
+        utilization: totalResources.totalRAM > 0 ? ((totalResources.allocatedRAM / totalResources.totalRAM) * 100).toFixed(1) : '0'
+      },
+      {
+        resource: 'Storage (GB)',
+        allocated: totalResources.allocatedStorage,
+        available: totalResources.totalStorage - totalResources.allocatedStorage,
+        total: totalResources.totalStorage,
+        utilization: totalResources.totalStorage > 0 ? ((totalResources.allocatedStorage / totalResources.totalStorage) * 100).toFixed(1) : '0'
+      }
+    ]
+  }
+
+  const resourceUtilizationData = calculateResourceUtilization();
 
   const exportReport = (type: string) => {
     let csvContent = '';
@@ -422,8 +507,8 @@ export const Analytics: React.FC = () => {
               <YAxis />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="vms" stroke="#3b82f6" strokeWidth={2} name="VMs" />
-              <Line type="monotone" dataKey="customers" stroke="#10b981" strokeWidth={2} name="Customers" />
+              <Line type="monotone" dataKey="nodes" stroke="#3b82f6" strokeWidth={2} name="Nodes" />
+              <Line type="monotone" dataKey="clusters" stroke="#10b981" strokeWidth={2} name="Clusters" />
             </LineChart>
           </ResponsiveContainer>
         </Card>
@@ -459,15 +544,32 @@ export const Analytics: React.FC = () => {
       {/* Resource Utilization Chart */}
       <Card className="p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Resource Utilization Analysis</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={resourceUtilizationData} layout="horizontal">
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart data={resourceUtilizationData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" />
-            <YAxis dataKey="resource" type="category" width={100} />
-            <Tooltip />
+            <XAxis dataKey="resource" />
+            <YAxis />
+            <Tooltip 
+              content={({ active, payload, label }) => {
+                if (active && payload && payload.length) {
+                  const resource = resourceUtilizationData.find(r => r.resource === label);
+                  return (
+                    <div className="bg-white p-3 border border-gray-200 rounded shadow-lg">
+                      <p className="font-medium">{`${label} - ${resource?.utilization}% utilized`}</p>
+                      {payload.map((entry, index) => (
+                        <p key={index} style={{ color: entry.color }}>
+                          {`${entry.name}: ${entry.value}`}
+                        </p>
+                      ))}
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
             <Legend />
-            <Bar dataKey="allocated" fill="#ef4444" name="Allocated" />
-            <Bar dataKey="available" fill="#10b981" name="Available" />
+            <Bar dataKey="allocated" stackId="a" fill="#ef4444" name="Allocated" />
+            <Bar dataKey="available" stackId="a" fill="#10b981" name="Available" />
           </BarChart>
         </ResponsiveContainer>
       </Card>
