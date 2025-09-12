@@ -47,6 +47,7 @@ export const Analytics: React.FC = () => {
     revenue: contracts.filter(c => c.customer_id === customer.id && c.status === 'Active').reduce((sum, c) => sum + c.value, 0)
   }));
 
+
   // const monthlyTrendData = [
   //   { month: 'Jan', vms: 45, customers: 12, revenue: 15000 },
   //   { month: 'Feb', vms: 52, customers: 15, revenue: 18500 },
