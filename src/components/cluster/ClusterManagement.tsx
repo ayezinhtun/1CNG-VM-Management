@@ -595,6 +595,37 @@ export const ClusterManagement: React.FC = () => {
                 />
               </FormField>
 
+              <FormField label="Total CPU" required>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={editFormData.total_cpu_ghz || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, total_cpu_ghz: parseFloat(e.target.value) || 0 })}
+                  placeholder="128.0"
+                />
+              </FormField>
+
+              <FormField label="Total RAM" required>
+                <Input
+                  type="number"
+                  min="0"
+                  value={editFormData.total_ram_gb || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, total_ram_gb: parseInt(e.target.value) || 0 })}
+                  placeholder="1024"
+                />
+              </FormField>
+
+              <FormField label="Total Storage" required>
+                <Input
+                  type="number"
+                  min="0"
+                  value={editFormData.total_storage_gb || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, total_storage_gb: parseInt(e.target.value) || 0 })}
+                  placeholder="1024"
+                />
+              </FormField>
+
               <FormField label="Purpose/Role" required>
                 <select
                   value={editFormData.cluster_purpose || 'Production'}
