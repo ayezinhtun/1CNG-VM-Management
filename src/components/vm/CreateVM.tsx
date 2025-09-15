@@ -9,7 +9,11 @@ import { useSupabaseDataStore as useDataStore } from '../../hooks/useSupabaseDat
 import { showToast } from '../ui/Toast';
 import { VM } from '../../types';
 
-export const CreateVM: React.FC = () => {
+interface CreateVMProps {
+  onNavigate: (tab: string) => void;
+}
+
+export const CreateVM: React.FC<CreateVMProps> = ({onNavigate}) => {
   const { 
     createVM, 
     customers, 
@@ -46,7 +50,7 @@ export const CreateVM: React.FC = () => {
     next_password_due_date: '',
     password_changer: '',
     public_ip: '',
-    management_ip: '',
+    management_ip: '',  
     private_ips: [''] as string[],
     allowed_ports: ['22', '80', '443'] as string[],
     status: 'Active' as const,
@@ -359,6 +363,12 @@ about the code for other developers who may be working on the project. */
     setFormData({ ...formData, allowed_ports: updated });
   };
 
+  const handleBackToManagement = () =>{
+    if(onNavigate){
+      onNavigate('vms');
+    }
+  }
+
   return (
     <motion.div
       className="p-6 space-y-6"
@@ -367,9 +377,19 @@ about the code for other developers who may be working on the project. */
       transition={{ duration: 0.3 }}
     >
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Create VM</h2>
-          <p className="text-gray-600 mt-1">Create a new virtual machine with hierarchical resource allocation</p>
+      <div className="flex items-center space-x-4">
+          {/* Clickable Back Button */}
+          <button
+            onClick={handleBackToManagement}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Back to VM Management"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Create VM</h2>
+            <p className="text-gray-600 mt-1">Create a new virtual machine with hierarchical resource allocation</p>
+          </div>
         </div>
         <div className="flex space-x-3">
           <Button 

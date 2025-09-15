@@ -183,7 +183,7 @@ export const ContractManagement: React.FC = () => {
 
   const contractColumns = [
     { key: 'contract_number', label: 'Contract #', sortable: true },
-    { key: 'contract_name', label: 'Contract Name', sortable: true },
+    // { key: 'contract_name', label: 'Contract Name', sortable: true },
     { 
       key: 'customer_id', 
       label: 'Customer', 
@@ -229,14 +229,14 @@ export const ContractManagement: React.FC = () => {
         );
       }
     },
-    { 
-      key: 'duration', 
-      label: 'Duration', 
-      render: (value: any, contract: Contract) => {
-        const duration = Math.ceil((new Date(contract.service_end_date).getTime() - new Date(contract.service_start_date).getTime()) / (1000 * 60 * 60 * 24));
-        return `${duration} days`;
-      }
-    },
+    // { 
+    //   key: 'duration', 
+    //   label: 'Duration', 
+    //   render: (value: any, contract: Contract) => {
+    //     const duration = Math.ceil((new Date(contract.service_end_date).getTime() - new Date(contract.service_start_date).getTime()) / (1000 * 60 * 60 * 24));
+    //     return `${duration} days`;
+    //   }
+    // },
     {
       key: 'actions',
       label: 'Actions',

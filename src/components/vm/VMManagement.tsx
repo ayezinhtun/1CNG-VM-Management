@@ -512,7 +512,7 @@ export const VMManagement: React.FC<VMManagementProps> = ({ onNavigate }) => {
                   </div>
                   <div className="flex justify-between">
                     <span className="font-medium text-gray-600">Services:</span> 
-                    <span>{selectedVM.services}</span>
+                    <span>{selectedVM.services || 'N/A'}</span>
                   </div>
                 </div>
               </div>
@@ -684,11 +684,84 @@ export const VMManagement: React.FC<VMManagementProps> = ({ onNavigate }) => {
                   placeholder="10.0.0.100"
                 />
               </FormField>
+
+              <FormField label="Private IPs">
+                <Input
+                  value={Array.isArray(editFormData.private_ips) ? editFormData.private_ips.join(', ') : editFormData.private_ips || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, private_ips: e.target.value.split(',').map(ip => ip.trim()).filter(ip => ip) })}
+                  placeholder="10.0.0.100, 10.0.0.101"
+                />
+              </FormField>
+
+              <FormField label="Allowed Ports">
+                <Input
+                  value={Array.isArray(editFormData.allowed_ports) ? editFormData.allowed_ports.join(', ') : editFormData.allowed_ports || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, allowed_ports: e.target.value.split(',').map(port => port.trim()).filter(port => port) })}
+                  placeholder="80, 443, 22, 3389"
+                />
+              </FormField>
+
+              <FormField label="Environment">
+                <select
+                  value={editFormData.custom_fields?.environment || 'Production'}
+                  onChange={(e) => setEditFormData({ 
+                    ...editFormData, 
+                    custom_fields: { 
+                      ...editFormData.custom_fields, 
+                      environment: e.target.value 
+                    } 
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Production">Production</option>
+                  <option value="Development">Development</option>
+                  <option value="Testing">Testing</option>
+                  <option value="Staging">Staging</option>
+                </select>
+              </FormField>
+
+
+              <FormField label="Access Level">
+                <select
+                  value={editFormData.custom_fields?.access_level || 'medium'}
+                  onChange={(e) => setEditFormData({ 
+                    ...editFormData, 
+                    custom_fields: { 
+                      ...editFormData.custom_fields, 
+                      access_level: e.target.value 
+                    } 
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                </select>
+              </FormField>
+
+              <FormField label="Backup Enabled">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={editFormData.custom_fields?.backup_enabled === 'true' || editFormData.custom_fields?.backup_enabled === true}
+                  onChange={(e) => setEditFormData({ 
+                    ...editFormData, 
+                    custom_fields: { 
+                      ...editFormData.custom_fields, 
+                      backup_enabled: e.target.checked 
+                    } 
+                  })}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Enable automated backups</span>
+              </label>
+            </FormField>
             </div>
+
 
             <FormField label="Services" required>
               <Input
-                value={editFormData.services || ''}
+                value={editFormData?.services || ''}
                 onChange={(e) => setEditFormData({ ...editFormData, services: e.target.value })}
                 placeholder="e.g., Web Server, Database"
               />

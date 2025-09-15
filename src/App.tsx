@@ -46,8 +46,8 @@ function App() {
         return <Analytics />;
       case 'activity-logs':
         return <ActivityLogs />;
-      case 'create-vm':
-        return <CreateVM />;
+        case 'create-vm':
+          return <CreateVM onNavigate={setActiveTab} />;
       case 'audit-logs':
         return <AuditLogs />;
       case 'import-export':

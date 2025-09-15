@@ -128,8 +128,11 @@ const finalRevenue = Math.round(revenueForMonth);
     const totalStorage = nodes.reduce((sum, n) => sum + (n.storage_capacity_gb || 0), 0);
   
     const allocatedCPU = vms.reduce((sum, vm) => sum + (vm.cpu_ghz || 0), 0);
+    console.log('allocatedCPU',allocatedCPU);
     const allocatedRAM = vms.reduce((sum, vm) => sum + (parseInt(vm.ram) || 0), 0);
+    console.log('allocatedRAM',allocatedRAM)
     const allocatedStorage = vms.reduce((sum, vm) => sum + (parseInt(vm.storage) || 0), 0);
+    console.log('allocatedStorage',allocatedStorage)
   
     return [
       {
