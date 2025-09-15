@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { BarChart3, PieChart, TrendingUp, Download, Calendar, Filter, DollarSign, Server, Users, Shield, AlertTriangle, Clock } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { useDataStore } from '../../hooks/useDataStore';
+import { useSupabaseDataStore as useDataStore } from '../../hooks/useSupabaseDataStore';
 import { showToast } from '../ui/Toast';
 import {
   BarChart,
@@ -96,10 +96,8 @@ export const Analytics: React.FC = () => {
       }, 0);
 
       // Use actual revenue if contracts exist, otherwise use fallback with variation
-      const finalRevenue = revenueForMonth > 0 
-        ? Math.round(revenueForMonth) // Use actual contract revenue
-        : Math.round((35000 + (index * 2500)) * (0.8 + (Math.sin(index * 0.6) * 0.2))); // Fallback with smaller variation
-
+      // Use only actual revenue from contracts
+const finalRevenue = Math.round(revenueForMonth);
       return {
         month: name, 
         nodes: nodesUpToMonth,
@@ -124,47 +122,40 @@ export const Analytics: React.FC = () => {
   //   { resource: 'Storage (GB)', allocated: metrics.totalStorage, available: 10000 - metrics.totalStorage }
   // ];
 
-  const calculateResourceUtilization = () =>{
-    const totalResources = nodes.reduce((total, node) =>({
-      totalCPU: total.totalCPU + node.total_cpu_ghz ,
-      allocatedCPU: total.allocatedCPU + node.allocated_cpu_ghz,
-      totalRAM: total.totalRAM + node.total_ram_gb,
-      allocatedRAM: total.allocatedRAM + node.allocated_ram_gb,
-      totalStorage: total.totalStorage + node.storage_capacity_gb,
-      allocatedStorage: total.allocatedStorage + node.allocated_storage_gb,
-    }),{
-      totalCPU: 0,
-      allocatedCPU: 0,
-      totalRAM: 0,
-      allocatedRAM: 0,
-      totalStorage: 0,
-      allocatedStorage: 0,
-    });
-
+  const calculateResourceUtilization = () => {
+    const totalCPU = nodes.reduce((sum, n) => sum + (n.total_cpu_ghz || 0), 0);
+    const totalRAM = nodes.reduce((sum, n) => sum + (n.total_ram_gb || 0), 0);
+    const totalStorage = nodes.reduce((sum, n) => sum + (n.storage_capacity_gb || 0), 0);
+  
+    const allocatedCPU = vms.reduce((sum, vm) => sum + (vm.cpu_ghz || 0), 0);
+    const allocatedRAM = vms.reduce((sum, vm) => sum + (parseInt(vm.ram) || 0), 0);
+    const allocatedStorage = vms.reduce((sum, vm) => sum + (parseInt(vm.storage) || 0), 0);
+  
     return [
       {
         resource: 'CPU (GHz)',
-        allocated: totalResources.allocatedCPU,
-        available: totalResources.totalCPU - totalResources.allocatedCPU,
-        total: totalResources.totalCPU,
-        utilization: totalResources.totalCPU > 0 ? ((totalResources.allocatedCPU / totalResources.totalCPU) * 100).toFixed(1) : '0'
+        allocated: allocatedCPU,
+        available: Math.max(0, totalCPU - allocatedCPU),
+        total: totalCPU,
+        utilization: totalCPU > 0 ? ((allocatedCPU / totalCPU) * 100).toFixed(1) : '0'
       },
       {
         resource: 'RAM (GB)',
-        allocated: totalResources.allocatedRAM,
-        available: totalResources.totalRAM - totalResources.allocatedRAM,
-        total: totalResources.totalRAM,
-        utilization: totalResources.totalRAM > 0 ? ((totalResources.allocatedRAM / totalResources.totalRAM) * 100).toFixed(1) : '0'
+        allocated: allocatedRAM,
+        available: Math.max(0, totalRAM - allocatedRAM),
+        total: totalRAM,
+        utilization: totalRAM > 0 ? ((allocatedRAM / totalRAM) * 100).toFixed(1) : '0'
       },
       {
         resource: 'Storage (GB)',
-        allocated: totalResources.allocatedStorage,
-        available: totalResources.totalStorage - totalResources.allocatedStorage,
-        total: totalResources.totalStorage,
-        utilization: totalResources.totalStorage > 0 ? ((totalResources.allocatedStorage / totalResources.totalStorage) * 100).toFixed(1) : '0'
+        allocated: allocatedStorage,
+        available: Math.max(0, totalStorage - allocatedStorage),
+        total: totalStorage,
+        utilization: totalStorage > 0 ? ((allocatedStorage / totalStorage) * 100).toFixed(1) : '0'
       }
-    ]
-  }
+    ];
+  };
+  
 
   const resourceUtilizationData = calculateResourceUtilization();
 
@@ -351,7 +342,12 @@ export const Analytics: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Resource Utilization</p>
-              <p className="text-3xl font-bold text-orange-600">78%</p>
+              <p className="text-3xl font-bold text-orange-600">
+                {resourceUtilizationData.length > 0 
+                  ? Math.round(resourceUtilizationData.reduce((sum, resource) => 
+                      sum + parseFloat(resource.utilization), 0) / resourceUtilizationData.length)
+                  : 0}%
+              </p>              
               <p className="text-sm text-orange-600 mt-1">CPU & Memory avg</p>
             </div>
             <BarChart3 className="w-8 h-8 text-orange-600" />
@@ -564,21 +560,18 @@ export const Analytics: React.FC = () => {
             <XAxis dataKey="resource" />
             <YAxis />
             <Tooltip 
-              content={({ active, payload, label }) => {
-                if (active && payload && payload.length) {
-                  const resource = resourceUtilizationData.find(r => r.resource === label);
-                  return (
-                    <div className="bg-white p-3 border border-gray-200 rounded shadow-lg">
-                      <p className="font-medium">{`${label} - ${resource?.utilization}% utilized`}</p>
-                      {payload.map((entry, index) => (
-                        <p key={index} style={{ color: entry.color }}>
-                          {`${entry.name}: ${entry.value}`}
-                        </p>
-                      ))}
-                    </div>
-                  );
+              formatter={(value, name, props) => {
+                if (name === 'Allocated') {
+                  return [`${value} ${props.payload.resource.includes('CPU') ? 'GHz' : 'GB'}`, name];
                 }
-                return null;
+                if (name === 'Available') {
+                  return [`${value} ${props.payload.resource.includes('CPU') ? 'GHz' : 'GB'}`, name];
+                }
+                return [value, name];
+              }}
+              labelFormatter={(label) => {
+                const resource = resourceUtilizationData.find(r => r.resource === label);
+                return `${label} - ${resource?.utilization}% utilized`;
               }}
             />
             <Legend />
@@ -589,7 +582,7 @@ export const Analytics: React.FC = () => {
       </Card>
 
       {/* Revenue Analysis */}
-      <Card className="p-6">
+      {/* <Card className="p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Analysis</h3>
         <ResponsiveContainer width="100%" height={400}>
           <AreaChart data={monthlyTrendData}>
@@ -600,7 +593,7 @@ export const Analytics: React.FC = () => {
             <Area type="monotone" dataKey="revenue" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.3} />
           </AreaChart>
         </ResponsiveContainer>
-      </Card>
+      </Card> */}
 
       {/* Export Options */}
       <Card className="p-6">

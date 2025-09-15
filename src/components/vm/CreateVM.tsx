@@ -5,7 +5,7 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { FormField } from '../ui/FormField';
-import { useDataStore } from '../../hooks/useDataStore';
+import { useSupabaseDataStore as useDataStore } from '../../hooks/useSupabaseDataStore';
 import { showToast } from '../ui/Toast';
 import { VM } from '../../types';
 

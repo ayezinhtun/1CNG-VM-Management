@@ -21,7 +21,7 @@ import { MetricsCard } from './MetricsCard';
 import { Card } from '../ui/Card';
 import { Table } from '../ui/Table';
 import { Button } from '../ui/Button';
-import { useDataStore } from '../../hooks/useDataStore';
+import { useSupabaseDataStore as useDataStore } from '../../hooks/useSupabaseDataStore';
 import { showToast } from '../ui/Toast';
 import { 
   PieChart, 

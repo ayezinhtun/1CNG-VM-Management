@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, Filter, Download, Search } from 'lucide-react';
-import { useDataStore } from '../../hooks/useDataStore';
+import { useSupabaseDataStore as useDataStore } from '../../hooks/useSupabaseDataStore';
 import { Card } from '../ui/Card';
 import { Table } from '../ui/Table';
 import { Button } from '../ui/Button';

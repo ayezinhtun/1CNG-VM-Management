@@ -7,7 +7,7 @@ import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { CreateCustomerWizard } from './CreateCustomerWizard';
 import { ContactManagement } from './ContactManagement';
-import { useDataStore } from '../../hooks/useDataStore';
+import { useSupabaseDataStore as useDataStore } from '../../hooks/useSupabaseDataStore';
 import { showToast } from '../ui/Toast';
 import { Customer } from '../../types'; 
 

@@ -6,7 +6,7 @@ import { Table } from '../ui/Table';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
-import { useDataStore } from '../../hooks/useDataStore';
+import { useSupabaseDataStore as useDataStore } from '../../hooks/useSupabaseDataStore';
 import { showToast } from '../ui/Toast';
 import { ActivityLog } from '../../types';
 
