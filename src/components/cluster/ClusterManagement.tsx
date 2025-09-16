@@ -14,8 +14,8 @@ import { Cluster } from '../../types';
 export const ClusterManagement: React.FC = () => {
   const { 
     clusters, 
-    // nodes,
-    // vms,
+    nodes,
+    vms,
     loading, 
     createCluster,
     updateCluster, 
@@ -222,8 +222,14 @@ export const ClusterManagement: React.FC = () => {
       key: 'utilization', 
       label: 'Utilization', 
       render: (value: any, cluster: Cluster) => {
-        const cpuUtil = cluster.total_cpu_ghz > 0 ? (cluster.allocated_cpu_ghz / cluster.total_cpu_ghz * 100) : 0;
-        const ramUtil = cluster.total_ram_gb > 0 ? (cluster.allocated_ram_gb / cluster.total_ram_gb * 100) : 0;
+        // const cpuUtil = cluster.total_cpu_ghz > 0 ? (cluster.allocated_cpu_ghz / cluster.total_cpu_ghz * 100) : 0;
+        // const ramUtil = cluster.total_ram_gb > 0 ? (cluster.allocated_ram_gb / cluster.total_ram_gb * 100) : 0;
+
+        const clusterVMs = vms.filter(vm => vm.cluster_id === cluster.id && vm.status === 'Active');
+const allocatedCPU = clusterVMs.reduce((sum, vm) => sum + vm.cpu_ghz, 0);
+const allocatedRAM = clusterVMs.reduce((sum, vm) => sum + parseInt(vm.ram), 0);
+const cpuUtil = cluster.total_cpu_ghz > 0 ? (allocatedCPU / cluster.total_cpu_ghz * 100) : 0;
+const ramUtil = cluster.total_ram_gb > 0 ? (allocatedRAM / cluster.total_ram_gb * 100) : 0;
         return (
           <div className="text-sm">
             <div>CPU: {cpuUtil.toFixed(1)}%</div>
@@ -661,102 +667,118 @@ export const ClusterManagement: React.FC = () => {
         title={`Cluster Details - ${selectedCluster?.cluster_name}`}
         size="xl"
       >
-        {selectedCluster && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-3">Cluster Information</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-600">Name:</span> 
-                    <span>{selectedCluster.cluster_name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-600">Code:</span> 
-                    <span className="font-mono">{selectedCluster.cluster_code}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-600">Purpose:</span> 
-                    <span>{selectedCluster.cluster_purpose}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-600">Location:</span> 
-                    <span>{selectedCluster.cluster_location}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-600">Status:</span> 
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      selectedCluster.status === 'Active' ? 'bg-green-100 text-green-800' :
-                      selectedCluster.status === 'Inactive' ? 'bg-red-100 text-red-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {selectedCluster.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-3">Resource Information</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-600">Total CPU:</span> 
-                    <span>{selectedCluster.total_cpu_ghz} GHz</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-600">Allocated CPU:</span> 
-                    <span>{selectedCluster.allocated_cpu_ghz} GHz</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-600">Available CPU:</span> 
-                    <span className="text-green-600">{selectedCluster.available_cpu_ghz} GHz</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-600">Total RAM:</span> 
-                    <span>{selectedCluster.total_ram_gb} GB</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-600">Total Storage:</span> 
-                    <span>{selectedCluster.total_storage_gb} GB ({selectedCluster.storage_type})</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-600">Nodes:</span> 
-                    <span>{selectedCluster.node_count}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-600">VMs:</span> 
-                    <span>{selectedCluster.vm_count}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+        {selectedCluster && (() => {
+          const clusterVMs = vms.filter(vm => vm.cluster_id === selectedCluster.id && vm.status === 'Active');
+          const allocatedCPU = clusterVMs.reduce((sum, vm) => sum + vm.cpu_ghz, 0);
+          const availableCPU = selectedCluster.total_cpu_ghz - allocatedCPU;
+          const allocatedRAM = clusterVMs.reduce((sum, vm) => sum + parseInt(vm.ram), 0);
+          const availableRAM = selectedCluster.total_ram_gb - allocatedRAM;
 
-            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setEditingCluster(selectedCluster);
-                  setEditFormData(selectedCluster);
-                  setShowClusterDetails(false);
-                  setShowEditModal(true);
-                }}
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Cluster
-              </Button>
-              <Button 
-                variant="danger"
-                onClick={() => {
-                  setShowClusterDetails(false);
-                  handleDelete(selectedCluster);
-                }}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete Cluster
-              </Button>
+          return (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">Cluster Information</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Name:</span> 
+                      <span>{selectedCluster.cluster_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Code:</span> 
+                      <span className="font-mono">{selectedCluster.cluster_code}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Purpose:</span> 
+                      <span>{selectedCluster.cluster_purpose}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Location:</span> 
+                      <span>{selectedCluster.cluster_location}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Status:</span> 
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        selectedCluster.status === 'Active' ? 'bg-green-100 text-green-800' :
+                        selectedCluster.status === 'Inactive' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {selectedCluster.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">Resource Information</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Total CPU:</span> 
+                      <span>{selectedCluster.total_cpu_ghz} GHz</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Allocated CPU:</span> 
+                      <span>{allocatedCPU} GHz</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Available CPU:</span> 
+                      <span className="text-green-600">{availableCPU} GHz</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Total RAM:</span> 
+                      <span>{selectedCluster.total_ram_gb} GB</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Allocated RAM:</span> 
+                      <span>{allocatedRAM} GB</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Available RAM:</span> 
+                      <span className="text-green-600">{availableRAM} GB</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Total Storage:</span> 
+                      <span>{selectedCluster.total_storage_gb} GB ({selectedCluster.storage_type})</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Nodes:</span> 
+                      <span>{selectedCluster.node_count}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">VMs:</span> 
+                      <span>{selectedCluster.vm_count}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setEditingCluster(selectedCluster);
+                    setEditFormData(selectedCluster);
+                    setShowClusterDetails(false);
+                    setShowEditModal(true);
+                  }}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Cluster
+                </Button>
+                <Button 
+                  variant="danger"
+                  onClick={() => {
+                    setShowClusterDetails(false);
+                    handleDelete(selectedCluster);
+                  }}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Cluster
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </Modal>
     </motion.div>
   );

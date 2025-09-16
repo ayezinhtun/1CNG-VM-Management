@@ -123,40 +123,70 @@ const finalRevenue = Math.round(revenueForMonth);
   // ];
 
   const calculateResourceUtilization = () => {
-    const totalCPU = nodes.reduce((sum, n) => sum + (n.total_cpu_ghz || 0), 0);
+    // Use logical threads with virtualization multiplier (typically 2-4x overallocation is normal)
+    const totalCPU = nodes.reduce((sum, n) => sum + ((n.total_logical_threads || 0) * 3), 0);
     const totalRAM = nodes.reduce((sum, n) => sum + (n.total_ram_gb || 0), 0);
     const totalStorage = nodes.reduce((sum, n) => sum + (n.storage_capacity_gb || 0), 0);
   
-    const allocatedCPU = vms.reduce((sum, vm) => sum + (vm.cpu_ghz || 0), 0);
-    console.log('allocatedCPU',allocatedCPU);
-    const allocatedRAM = vms.reduce((sum, vm) => sum + (parseInt(vm.ram) || 0), 0);
-    console.log('allocatedRAM',allocatedRAM)
-    const allocatedStorage = vms.reduce((sum, vm) => sum + (parseInt(vm.storage) || 0), 0);
-    console.log('allocatedStorage',allocatedStorage)
+    console.log('Sample node data:', nodes[0]);
+    console.log('Total nodes data (cores/GB):', { totalCPU, totalRAM, totalStorage });
+    console.log('Nodes count:', nodes.length);
+    
+    const allocatedCPU = vms.reduce((sum, vm) => {
+      // Use cpu field (vCPU cores) instead of cpu_ghz which has unrealistic values
+      const cpuValue = parseFloat(vm.cpu) || 0;
+      return sum + cpuValue;
+    }, 0);
+    console.log('allocatedCPU (vCPU cores):',allocatedCPU);
+    console.log('CPU comparison:', { allocated: allocatedCPU, total: totalCPU, ratio: allocatedCPU/totalCPU });
+    
+    const allocatedRAM = vms.reduce((sum, vm) => {
+      let ramValue = parseFloat(vm.ram) || 0;
+      // Convert MB to GB if value is > 1000 (assuming MB)
+      if (ramValue > 1000) {
+        ramValue = ramValue / 1024;
+      }
+      return sum + ramValue;
+    }, 0);
+    console.log('allocatedRAM (GB):',allocatedRAM)
+    console.log('RAM comparison:', { allocated: allocatedRAM, total: totalRAM, ratio: allocatedRAM/totalRAM });
+    
+    const allocatedStorage = vms.reduce((sum, vm) => {
+      let storageValue = parseFloat(vm.storage) || 0;
+      // Convert MB to GB if value is > 1000 (assuming MB)
+      if (storageValue > 1000) {
+        storageValue = storageValue / 1024;
+      }
+      return sum + storageValue;
+    }, 0);
+    console.log('allocatedStorage (GB):',allocatedStorage)
+    console.log('Storage comparison:', { allocated: allocatedStorage, total: totalStorage, ratio: allocatedStorage/totalStorage });
   
     return [
       {
-        resource: 'CPU (GHz)',
-        allocated: allocatedCPU,
+        resource: 'CPU (vCores)',
+        allocated: Math.min(allocatedCPU, totalCPU),
         available: Math.max(0, totalCPU - allocatedCPU),
         total: totalCPU,
         utilization: totalCPU > 0 ? ((allocatedCPU / totalCPU) * 100).toFixed(1) : '0'
       },
       {
         resource: 'RAM (GB)',
-        allocated: allocatedRAM,
+        allocated: Math.min(allocatedRAM, totalRAM),
         available: Math.max(0, totalRAM - allocatedRAM),
         total: totalRAM,
         utilization: totalRAM > 0 ? ((allocatedRAM / totalRAM) * 100).toFixed(1) : '0'
       },
       {
         resource: 'Storage (GB)',
-        allocated: allocatedStorage,
+        allocated: Math.min(allocatedStorage, totalStorage),
         available: Math.max(0, totalStorage - allocatedStorage),
         total: totalStorage,
         utilization: totalStorage > 0 ? ((allocatedStorage / totalStorage) * 100).toFixed(1) : '0'
       }
     ];
+
+
   };
   
 
